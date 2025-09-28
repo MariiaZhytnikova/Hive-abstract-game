@@ -5,7 +5,7 @@ import { Piece } from '../models/Piece';
 // 🔹 Global cache for piece images
 const pieceImages: Record<string, HTMLImageElement> = {};
 
-function loadPieceImage(type: string, color: string): HTMLImageElement {
+export function loadPieceImage(type: string, color: string): HTMLImageElement {
   const key = `${type}_${color}`;
   if (!pieceImages[key]) {
     const img = new Image();
@@ -19,7 +19,7 @@ export class CanvasRenderer {
   public ctx: CanvasRenderingContext2D;
   private width: number;
   private height: number;
-  private size: number; // hex size
+  public size: number; // hex size
 
   constructor(canvas: HTMLCanvasElement, size = 30) {
     this.ctx = canvas.getContext('2d')!;
@@ -105,3 +105,4 @@ export class CanvasRenderer {
     );
   }
 }
+

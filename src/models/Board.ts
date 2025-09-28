@@ -86,4 +86,29 @@ export class Board {
   addDir(coord: HexCoord, dir: HexCoord): HexCoord {
     return { q: coord.q + dir.q, r: coord.r + dir.r };
   }
+
+  // Returns all coordinates that are empty and potentially legal
+  allEmptyHexes(): HexCoord[] {
+    const hexSet = new Set<string>();
+    const neighbors: HexCoord[] = [];
+
+    // Collect all neighboring coords of existing pieces
+    this.pieces.forEach(p => {
+      this.neighbors(p.position).forEach(n => {
+        if (this.isEmpty(n)) {
+          const key = `${n.q},${n.r}`;
+          if (!hexSet.has(key)) {
+            hexSet.add(key);
+            neighbors.push(n);
+          }
+        }
+      });
+    });
+
+    // if no pieces yet, return just the center
+    if (this.pieces.length === 0) return [{ q: 0, r: 0 }];
+
+    return neighbors;
+  }
+
 }

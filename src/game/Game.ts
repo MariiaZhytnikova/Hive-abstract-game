@@ -1,7 +1,7 @@
 import { Board } from "../models/Board";
 import { Piece } from "../models/Piece";
 import type { Player } from "../models/Piece";
-import * as Models from  "../models/index"; 
+import type { HexCoord } from "../models/Piece";
 
 /**
  * Game: manages game state and main rules.
@@ -9,7 +9,7 @@ import * as Models from  "../models/index";
  * - board: holds pieces and helper methods
  * - currentPlayer: "White" | "Black"
  * - movesMade: number of moves each player already performed
- * - placePiece(piece, coord): place a piece from the player's hand on the board
+ * - placePiece(piece, coord): place a piece from the player's hand on the board`
  * - movePiece(piece, coord): move an existing piece on the board
  * - enforces "Queen must be placed by 4th turn" rule
  * - validates moves via piece.legalMoves(board)
@@ -33,7 +33,6 @@ export class Game {
     if (!ok) return false;
 
     // if placement succeeded, advance the turn
-    this.nextTurn();
     return true;
   }
 
@@ -43,36 +42,48 @@ export class Game {
     this.turnCount++;
   }
 
-  /**
-   * Place a piece on the board if the move is valid.
+  /** Check if a piece can legally be placed at a given coordinate 
    * Checks:
    *  - Destination is empty
    *  - If not the very first move, new piece must touch at least one piece
    *  - QueenBee must be placed by each player's 4th turn
+  */
+private canPlacePiece(piece: Piece, coord: HexCoord): boolean {
+  if (!this.board.isEmpty(coord)) return false;
+
+  if (this.board.pieces.length === 0) return true; // первый ход разрешён
+
+  const neighbors = this.board.neighbors(coord);
+  const touching = neighbors.some(n => !this.board.isEmpty(n));
+  if (!touching) return false;
+
+  // Queen-bee placement
+  const playerPieces = this.board.pieces.filter(p => p.owner === piece.owner);
+  const hasQueen = playerPieces.some(p => p.constructor.name === "QueenBee");
+  if (!hasQueen && playerPieces.length >= 3 && piece.constructor.name !== "QueenBee") {
+    return false;
+  }
+
+  return true;
+}
+
+
+  /**
+   * Place a piece on the board if the move is valid.
    */
-  placePiece(piece: Piece, coord: { q: number; r: number }): boolean {
-    // destination must be empty
-    if (!this.board.isEmpty(coord)) return false;
+  placePiece(piece: Piece, coord: HexCoord): boolean {
+    if (piece.owner !== this.currentPlayer) return false; // Only current player can play
+    if (!this.canPlacePiece(piece, coord)) return false;
 
-    // require contact with hive except for very first move
-    if (this.board.pieces.length > 0) {
-      const neighbors = this.board.neighbors(coord);
-      const touching = neighbors.some(n => !this.board.isEmpty(n));
-      if (!touching) return false;
-    }
-
-    // queen-bee rule: each player must place queen by their 4th turn
-    const samePlayerPieces = this.board.pieces.filter(
-      p => p.owner === piece.owner
-    );
-    const hasQueen = samePlayerPieces.some(p => p.constructor.name === "QueenBee");
-    if (!hasQueen && samePlayerPieces.length >= 3 && piece.constructor.name !== "QueenBee") {
-      return false;
-    }
-
-    // all checks passed: add to board
-    this.board.addPiece(piece, coord);
+    this.board.addPiece(piece, coord); // Actually add to board
+    this.nextTurn();                   // Advance turn
     return true;
+  }
+
+  /** Return all legal placements for a piece (without modifying the board) */
+  legalPlacements(piece: Piece): HexCoord[] {
+    const candidates = this.board.allEmptyHexes(); // You need a method returning all empty hexes
+    return candidates.filter(coord => this.canPlacePiece(piece, coord));
   }
 
   /**
@@ -106,7 +117,6 @@ export class Game {
     this.nextTurn();
     return true;
   }
-
 
   checkWin(): Player | null {
     const queens = this.board.pieces.filter(p => p.constructor.name === "QueenBee");
