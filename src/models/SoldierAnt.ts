@@ -12,6 +12,7 @@ import { canSlide } from "./utils";
  * - Functionally: explore all reachable empty cells that satisfy sliding.
  */
 export class SoldierAnt extends Piece {
+  readonly type = "ant";
   legalMoves(board: Board): HexCoord[] {
     const results: HexCoord[] = [];
     const visited = new Set<string>();

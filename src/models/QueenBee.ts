@@ -11,6 +11,7 @@ import type { Board } from "./Board";
  * - Move cannot break the single-hive connectivity.
  */
 export class QueenBee extends Piece {
+  readonly type = "bee";
   legalMoves(board: Board): HexCoord[] {
     return board.neighbors(this.position)
                 .filter(c => canSlide(board, this.position, c));

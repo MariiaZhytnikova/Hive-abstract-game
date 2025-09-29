@@ -1,30 +1,25 @@
-// Convert pixel coordinates (physical pixels) to axial hex coordinates
-export function pixelToHex(x: number, y: number, hexSize: number) {
-  // Convert physical pixels to logical hex coordinates
-  const q = ((Math.sqrt(3) / 3) * (x / hexSize) - (1 / 3) * (y / hexSize));
-  const r = ((2 / 3) * (y / hexSize));
+export function pixelToHex(x: number, y: number, hexSize: number): { q: number, r: number } {
+  const q = ((Math.sqrt(3) / 3 * x) - (1 / 3 * y)) / hexSize;
+  const r = (2 / 3 * y) / hexSize;
   return hexRound({ q, r });
 }
 
-// Round fractional axial coordinates to nearest hex
-export function hexRound(hex: { q: number; r: number }) {
-  let q = Math.round(hex.q);
-  let r = Math.round(hex.r);
-  let s = Math.round(-hex.q - hex.r);
+function hexRound({ q, r }: { q: number, r: number }): { q: number, r: number } {
+  const s = -q - r;
 
-  const q_diff = Math.abs(q - hex.q);
-  const r_diff = Math.abs(r - hex.r);
-  const s_diff = Math.abs(s - (-hex.q - hex.r));
+  let rq = Math.round(q);
+  let rr = Math.round(r);
+  let rs = Math.round(s);
 
-  if (q_diff > r_diff && q_diff > s_diff) q = -r - s;
-  else if (r_diff > s_diff) r = -q - s;
+  const q_diff = Math.abs(rq - q);
+  const r_diff = Math.abs(rr - r);
+  const s_diff = Math.abs(rs - s);
 
-  return { q, r };
-}
+  if (q_diff > r_diff && q_diff > s_diff) {
+    rq = -rr - rs;
+  } else if (r_diff > s_diff) {
+    rr = -rq - rs;
+  }
 
-// Convert axial hex coordinates to pixel coordinates (logical)
-export function hexToPixel(q: number, r: number, hexSize: number) {
-  const x = hexSize * Math.sqrt(3) * (q + r/2);
-  const y = hexSize * 3/2 * r;
-  return { x, y };
+  return { q: rq, r: rr };
 }

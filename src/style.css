@@ -2,20 +2,31 @@
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #b3a2a2;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+@font-face {
+  font-family: "JLR Bizzy Beez";
+  src: url("public/fonts/jlr-bizzy-beez.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+.bee-text {
+  font-family: "JLR Bizzy Beez", sans-serif;
+}
+
+h1 {
+  color: #ffe066;
+  font-size: 3rem;
+}
+
 a {
   font-weight: 500;
-  color: #646cff;
+  color: #f0e68c;
   text-decoration: inherit;
 }
 a:hover {
@@ -25,76 +36,13 @@ a:hover {
 body {
   margin: 0;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
+
+ 
   min-width: 320px;
   min-height: 100vh;
   background-color: #000000fd; /* your dark theme */
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vanilla:hover {
-  filter: drop-shadow(0 0 2em #3178c6aa);
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+  padding-bottom: 50px;
 }
 
 .board {
@@ -114,31 +62,12 @@ button:focus-visible {
   margin-left: 30px; /* offset every other row */
 }
 
-.hex-cell {
-  width: 60px;
-  height: 60px;
-  background-color: #f0e68c;
-  clip-path: polygon(
-    25% 6.7%,
-    75% 6.7%,
-    100% 50%,
-    75% 93.3%,
-    25% 93.3%,
-    0% 50%
-  );
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  color: #333;
-  cursor: pointer;
-}
-
 /* Container holding everything: banks + board */
 #game-container {
   display: flex;
+  flex-direction: column;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
   gap: 20px;
   padding: 20px;
 }
@@ -196,13 +125,13 @@ button:focus-visible {
 
 /* offset every other row */
 .hex-row:nth-child(even) {
-  margin-left: 30px; /* adjust to match hex width */
+  margin-left: 30px; 
 }
 
 .hex-cell {
   width: 60px;
   height: 60px;
-  background-color: #e7e7e7; /* light grey template */
+  background-color: #e7e7e7;
   clip-path: polygon(
     25% 6.7%,
     75% 6.7%,
@@ -219,20 +148,97 @@ button:focus-visible {
 
 #hive-canvas {
   display: block;
-  margin: 0 auto;   /* center horizontally */
+  margin: 0 auto; 
   margin-bottom: 50px;
 }
-
 
 .center-container {
   display: flex;
-  justify-content: center;   /* horizontal center */
-  align-items: center;       /* vertical center */
+  flex-direction: column;
+  justify-content: center;   
+  align-items: center;    
   margin-top: 50px;
+  margin-bottom: 20px
 }
 
-h1 {
+#game-status {
   color: #ffe066;
-  font-size: 3rem;
-  margin-bottom: 50px;
+  min-height: 1.5em; 
+  text-align: center;
+  font-size: 1.2em;
 }
+
+
+
+/* Overlay covers the screen */
+#popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(13, 3, 27, 0.85); 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Hidden by default */
+.hidden {
+  display: none !important;
+}
+
+/* Popup box */
+.popup {
+  background: #1a0f2b; 
+  color: #ffe066;      
+  padding: 25px 35px;
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+  text-align: center;
+  position: relative;
+  min-width: 280px;
+  animation: popIn 0.25s ease;
+}
+
+/* Heading text */
+.popup h2 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: bold;
+}
+
+/* Close button (X) */
+#close-popup {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  font-size: 28px;
+  font-weight: bold;
+  color: #ffe066;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+#close-popup:hover {
+  color: #ffffff;
+}
+
+button
+{
+  margin-left: 40px;
+  background-color: #ffe066;
+}
+
+/* Animation */
+/* @keyframes popIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+} */

@@ -12,6 +12,7 @@ import { canSlide } from "./utils";
  * - Cannot backtrack or revisit the same cell in the same move.
  */
 export class Spider extends Piece {
+  readonly type = "spider";
   legalMoves(board: Board): HexCoord[] {
     const results: HexCoord[] = [];
 

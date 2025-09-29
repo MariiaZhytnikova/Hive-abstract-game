@@ -10,6 +10,7 @@ import type { Board } from "./Board";
  * - Cannot move if no occupied neighbor exists in the chosen direction.
  */
 export class Grasshopper extends Piece {
+  readonly type = "hopper";
   legalMoves(board: Board): HexCoord[] {
     const moves: HexCoord[] = [];
 

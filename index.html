@@ -1,26 +1,70 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-		<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-		<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-		<link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
-		<link rel="manifest" href="/site.webmanifest">
+  <head>
+    <meta charset="UTF-8" />
 
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>codespaces-blank</title>
-	
-	</head>
-	<body>
-		<div class="wrapper">
-			<div class="center-container">
-				<h1>Hive Game</h1>
-			</div>
-			<!-- <div id="app"></div> -->
-			<canvas id="hive-canvas" width="1400" height="700" style="border:1px solid #ffe066; display:block; margin:auto;"></canvas>
-			<!-- <canvas id="hive-canvas" style="border:1px solid #ffe066; display:block; margin:auto;"></canvas> -->
-		</div>
-	<script type="module" src="/src/main.ts"></script>
-	</body>
+    <!-- Favicon + PWA -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
+    <link rel="manifest" href="/site.webmanifest">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hive Game</title>
+    <style>
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: #000000;  /* match your canvas background */
+        visibility: hidden;   /* hide until JS says ready */
+      }
+      body.ready {
+        visibility: visible;
+      }
+      footer {
+        text-align: center;
+        color: #ffe066;
+        padding: 10px;
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        background: #000000;
+      }
+    </style>
+
+    <!-- Preload external CSS to reduce flash -->
+    <link rel="preload" href="/src/style.css" as="style">
+    <link rel="stylesheet" href="/src/style.css">
+  </head>
+  <body>
+    <div id="game-container" class="hidden">
+      <div class="center-container">
+        <h1 class="bee-text">Hive Game</h1>
+        <div id="game-status"></div>
+
+        <div id="popup-overlay" class="hidden">
+          <div class="popup">
+            <span id="close-popup">&times;</span>
+            <h2 id="popup-message">White wins!</h2>
+          </div>
+        </div>
+      </div>
+
+      <canvas id="hive-canvas" width="1400" height="700"
+        style="border:1px solid #ffe066; display:block; margin:auto;">
+      </canvas>
+    </div>
+
+    <footer>
+      <p>
+        ©2025 
+        <a href="https://github.com/MariiaZhytnikova" target="_blank">Mariia</a> & 
+        <a href="https://github.com/marinezh" target="_blank">Marina</a>
+      </p>
+    </footer>
+
+    <!-- Your script -->
+    <script type="module" src="/src/main.ts"></script>
+  </body>
 </html>

@@ -11,6 +11,7 @@ import { canSlide } from "./utils";
  *   any adjacent hex (empty or occupied) without corridor checks.
  */
 export class Beetle extends Piece {
+  readonly type = "beetle";
   legalMoves(board: Board): HexCoord[] {
     const neighbors = board.neighbors(this.position);
     const moves: HexCoord[] = [];
