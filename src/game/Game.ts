@@ -59,15 +59,18 @@ export class Game {
     }
   
 
-    if (this.board.pieces.length === 1) {
-      // black’s first move cannot touch opponent’s piece
-      const neighbors = this.board.neighbors(coord);
-      if (neighbors.some(n => !this.board.isEmpty(n))) return false;
-    } else if (this.board.pieces.length > 1) {
-      // other moves must touch hive
-      const neighbors = this.board.neighbors(coord);
-      if (!neighbors.some(n => !this.board.isEmpty(n))) return false;
+    const neighbors = this.board.neighbors(coord);
+    let touchesOwn = false;
+
+    for (const n of neighbors) {
+      const piece = this.board.pieces.find(p => p.position.q === n.q && p.position.r === n.r);
+      if (!piece) continue;
+      if (piece.owner === this.currentPlayer) touchesOwn = true;
+      else return false;
     }
+
+    if (this.board.pieces.length > 1 && !touchesOwn) return false;
+
 
     // queen-bee rule: each player must place queen by their 4th turn
     const samePlayerPieces = this.board.pieces.filter(
@@ -111,9 +114,9 @@ export class Game {
 
     // try the move and ensure hive stays intact
     const old = { ...piece.position };
-    if (this.board.pieces.length > 2) {
+    if (this.board.pieces.length > 2 && !(piece.type === "beetle" && piece.stackLevel === 0)) {
       piece.position = to;
-      if (!this.board.isHiveIntact(piece, piece.owner)) {
+      if (!this.board.isHiveIntact(piece, to)) {
         // revert if the hive would break
         piece.position = old;
         console.log("Move failed: Hive not intact");

@@ -29,21 +29,42 @@ export class Board {
   }
 
   // Check if moving a piece would break the hive
-  isHiveIntact(movingPiece: Piece, ownerToCheck: string): boolean {
+  
+  isHiveIntact(movingPiece: Piece, pos: HexCoord): boolean {
     if (this.pieces.length <= 1) return true;
 
-    // Build a set of all positions except the moving piece
-    // Exclude beetles that are not at the bottom of their stack
-    const remaining = this.pieces
-      .filter(p => 
-        p !== movingPiece &&
-        p.owner === ownerToCheck &&
-        !(p.type === 'beetle' && this.stackHeight(p.position) > 1)
-      )
-      .map(p => `${p.position.q},${p.position.r}`);
+    // Build a map of positions to pieces at that position
+    const stacks = new Map<string, Piece[]>();
+    for (const p of this.pieces) {
+      const key = `${p.position.q},${p.position.r}`;
+      if (!stacks.has(key)) stacks.set(key, []);
+      stacks.get(key)!.push(p);
+    }
+
+    // Simulate moving the piece to the new position
+    const oldKey = `${movingPiece.position.q},${movingPiece.position.r}`;
+    const newKey = `${pos.q},${pos.r}`;
+
+    // Remove from old position stack
+    if (stacks.has(oldKey)) {
+      stacks.set(oldKey, stacks.get(oldKey)!.filter(p => p !== movingPiece));
+      if (stacks.get(oldKey)!.length === 0) {
+        stacks.delete(oldKey);
+      }
+    }
+
+    // Add to new position stack
+    if (!stacks.has(newKey)) stacks.set(newKey, []);
+    stacks.get(newKey)!.push(movingPiece);
+
+    // Get all positions with a visible (top) piece
+    const remaining = Array.from(stacks.entries())
+      .map(([key, stack]) => ({ key, top: stack[stack.length - 1] }))
+      .map(({ key }) => key);
 
     if (remaining.length === 0) return true;
 
+    // Flood fill connectivity check
     const visited = new Set<string>();
     const stack = [remaining[0]];
 
@@ -60,8 +81,10 @@ export class Board {
         }
       });
     }
+
     return visited.size === remaining.length;
   }
+
 
   stackHeight(coord: HexCoord): number {
     return this.pieces.filter(
