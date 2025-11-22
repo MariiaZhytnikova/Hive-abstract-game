@@ -1,5 +1,5 @@
 import { Piece } from "./Piece";
-import { canSlide } from "./utils";
+import { canSlide } from '../game/rules';
 import type { HexCoord } from "./Piece";
 import type { Board } from "./Board";
 

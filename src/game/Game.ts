@@ -1,11 +1,8 @@
 import { Board } from "../models/Board";
 import { Piece } from "../models/Piece";
 import type { Player } from "../models/Piece";
-import { showWinnerPopup } from "../popup";
-import { showError, topPieceAt } from '../models/utils';
-
-// When you detect a win:
-showWinnerPopup("White"); // or showWinnerPopup("Black");
+import { showError } from '../ui/uiUtils';
+import type { BankPiece } from './PieceBank';
 
 /**
  * Game: manages game state and main rules.
@@ -20,16 +17,53 @@ showWinnerPopup("White"); // or showWinnerPopup("Black");
  * - determines game over (queen surrounded)
  */
 
+const pieceBankConfig: Array<{ type: BankPiece["type"]; count: number }> = [
+	{ type: "bee", count: 1 },
+	{ type: "spider", count: 2 },
+	{ type: "beetle", count: 2 },
+	{ type: "hopper", count: 3 },
+	{ type: "ant", count: 3 },
+];
+
+// Simple ID generator for bank pieces
+let _bankId = 0;
+function bankUid() {
+  return `p_${_bankId++}`;
+}
+
 export class Game {
+	public bank: BankPiece[] = [];
 	board: Board;
 	currentPlayer: Player | null;
+	public validMoves: { q: number; r: number }[] = [];
 	turnCount: number;
 
 	constructor() {
 		this.board = new Board();
 		this.currentPlayer = null;
 		this.turnCount = 1;
+		this.bank = this.createInitialBank();
 	}
+
+	private createInitialBank(): BankPiece[] {
+		const result: BankPiece[] = [];
+		(["Black", "White"] as const).forEach((color) => {
+			pieceBankConfig.forEach(({ type, count }) => {
+				for (let i = 0; i < count; i++) {
+					result.push({
+						id: bankUid(),
+						x: 0,
+						y: 0,
+						type,
+						color,
+						width: 0,   // will be set by layoutBankPositions()
+						height: 0,  // "
+					});
+				}
+			});
+		});
+    	return result;
+  	}
 
 	/** Switch to the other player and increment turn */
 	nextTurn(): void {
@@ -81,10 +115,7 @@ export class Game {
 	let touchesOwn = false;
 
 	for (const n of neighbors) {
-		const neighborPiece = topPieceAt(this.board, n); 
-		// const neighborPiece = this.board.pieces.find(
-		// 	p => p.position.q === n.q && p.position.r === n.r
-		// );
+		const neighborPiece = this.board.topPieceAt(this.board, n); 
 		if (!neighborPiece) continue;
 		if (neighborPiece.owner === this.currentPlayer) {
 			touchesOwn = true;
@@ -156,22 +187,10 @@ export class Game {
 		}
 
 		piece.position = to;
-		// this.board.updateStackLevelsAt(old);
 		piece.stackLevel = this.board.updateStackLevelsAt(to);
 		return true;
 	}
 
-	// checkWin(): Player | null {
-	// 	console.log(p.owner, p.type, p.name, p.constructor?.name, p.position)
-	// 	const queens = this.board.pieces.filter(p => p.constructor.name === "QueenBee");
-	// 	for (const q of queens) {
-	// 		const neighbors = this.board.neighbors(q.position);
-	// 		const surrounded = neighbors.every(n => !this.board.isEmpty(n));
-	// 		if (surrounded) return q.owner === "White" ? "Black" : "White";
-	// 	}
-	// 	return null;
-	// }
-	
 	checkWin(): Player | null {
 	this.board.pieces.forEach(p => {
 		    console.log(
@@ -191,15 +210,5 @@ export class Game {
 	}
 	return null;
 	}
-
-	// checkWin(): Player | null {
-	// 	const queens = this.board.pieces.filter(p => p.type === "QueenBee");
-	// 	for (const q of queens) {
-	// 		const neighbors = this.board.neighbors(q.position);
-	// 		const surrounded = neighbors.every(n => !this.board.isEmpty(n));
-	// 		if (surrounded) return q.owner === "White" ? "Black" : "White";
-	// 	}
-	// 	return null;
-	// }
 
 }
