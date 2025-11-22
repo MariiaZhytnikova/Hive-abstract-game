@@ -1,6 +1,9 @@
 # 🐝 Hive Game (TypeScript)
 
 **Live Demo**: [https://marinezh.github.io/Hive-abstract-game/](https://marinezh.github.io/Hive-abstract-game/)
+or
+
+[https://mariiazhytnikova.github.io/Hive-abstract-game/](https://mariiazhytnikova.github.io/Hive-abstract-game/)
 
 Implementation of the classic abstract board game **Hive** using TypeScript, HTML5 canvas and simple game logic.  
 This was developed as a Rush project at **Hive School** (42 Helsinki).  
