@@ -1,6 +1,7 @@
 # 🐝 Hive Game (TypeScript)
 
 **Live Demo**: [https://marinezh.github.io/Hive-abstract-game/](https://marinezh.github.io/Hive-abstract-game/)
+
 or
 
 [https://mariiazhytnikova.github.io/Hive-abstract-game/](https://mariiazhytnikova.github.io/Hive-abstract-game/)
