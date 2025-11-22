@@ -142,11 +142,90 @@ function placeFromBank(hex: { q: number; r: number }) {
   }
 }
 
-// -------------------------------
-// MOVE FROM BOARD
-// -------------------------------
-function moveFromBoard(hex: { q: number; r: number }) {
-    if (!selected || selected.from !== "board") return;
+  // Move or Place
+  if (selected) {
+    const sel = selected;
+    const target = pixelToHex(clickX - centerX, clickY - centerY, HEX_SIZE);
+    
+    if (sel.from === "bank") {                   /// BANK
+      const radius = 6;                           //board radius
+      if (Math.abs(target.q) > radius || Math.abs(target.r) > radius || Math.abs(target.q + target.r) > radius) {
+        console.log("❌ Outside board bounds:", target);
+        showError("❌ Outside board bounds");
+        selected = null;
+        renderCanvasBoard();
+        return;
+      }
+      const pieceObj = createPiece(sel.type, sel.color, target);
+      if (pieceObj && game.placePiece(pieceObj, target)) {
+        // remove from bank + reflow
+        const idx = bankPieces.findIndex(p => p.id === sel.bankId);
+        if (idx !== -1) {
+          bankPieces.splice(idx, 1);
+          layoutBankPositions(bankPieces, width, dpr, pieceSize);
+        }
+        // Check for win condition after placing a piece!!!!!!!!!!
+        const winner = game.checkWin();
+        if (winner) {
+          console.log(`Winner: ${winner}`);
+          showWinnerPopup(winner);
+          return;
+        }
+        if (game.board.pieces.length > 2) {
+          const next = game.currentPlayer === "White" ? "Black" : "White";
+          if (!hasAvailableMoves(game.board, next, bankPieces)) {
+            console.log(`${next} has no legal moves — skipping turn`);
+            showError(`⚠️ ${next} has no legal moves — turn skipped!`); // CHECK PLAYERS TURN!!!
+          } else {
+            game.nextTurn();
+          }
+        } else {
+          game.nextTurn();
+        }
+      }
+    } else if (sel.from === "board") {            /// BOARD
+      if (game.movePiece(sel.ref, target)) {
+        console.log("Move successful");
+        const next = game.currentPlayer === "White" ? "Black" : "White";
+        if (!hasAvailableMoves(game.board, next, bankPieces)) {
+          console.log(`${next} has no legal moves — skipping turn`);
+          showError(`⚠️ ${next} has no legal moves — turn skipped!`); // CHECK PLAYERS TURN!!!
+        } else {
+          game.nextTurn();
+        }
+      } else {
+        console.log("Move failed");
+      }
+    }
+    selected = null;
+    validMoves = [];
+    renderCanvasBoard();
+    document.getElementById('game-status')!.textContent = `Next move: ${game.currentPlayer}`;
+
+    // DEBUG (check the winner)
+
+
+		const winner = game.checkWin();
+		if (winner) {
+		  console.log(`Winner: ${winner}`);
+		  showWinnerPopup(winner);
+		}
+	}
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  mousePos = getMousePos(e, canvas);
+  const { x: mouseX, y: mouseY } = getMousePos(e, canvas);
+  const centerX = width / 2;
+  const centerY = height / 2;
+
+	const newHoveredHex = pixelToHex(mouseX - centerX, mouseY - centerY, HEX_SIZE);
+	// Only redraw if hovered hex actually changes
+	if (!hoveredHex || hoveredHex.q !== newHoveredHex.q || hoveredHex.r !== newHoveredHex.r) {
+		hoveredHex = newHoveredHex;
+		renderCanvasBoard();
+	}
+});
 
     const piece = selected.ref;
 
