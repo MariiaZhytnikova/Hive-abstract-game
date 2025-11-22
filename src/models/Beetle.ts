@@ -1,7 +1,7 @@
 import { Piece } from "./Piece";
 import type { HexCoord } from "./Piece";
 import type { Board } from "./Board";
-import { canSlide } from "./utils";
+import { canSlide } from '../game/rules';
 
 /**
  * Beetle:

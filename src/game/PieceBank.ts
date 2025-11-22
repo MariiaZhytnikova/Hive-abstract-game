@@ -44,26 +44,6 @@ export function drawPieceBanks(bankPieces: BankPiece[], ctx: CanvasRenderingCont
   });
 }
 
-// export function layoutBankPositions(bankPieces: BankPiece[], canvasWidth: number, dpr: number, pieceSize: number) {
-//   const leftX = 20;
-//   const rightX = canvasWidth / dpr - pieceSize - 20;
-//   const startY = 60;
-//   const gapY = pieceSize + 10;
-
-//   let yBlack = startY;
-//   let yWhite = startY;
-
-//   const order = ["bee","spider","beetle","hopper","ant"];
-
-//   const blackPieces = bankPieces.filter(p => p.color === "Black")
-//     .sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type));
-//   const whitePieces = bankPieces.filter(p => p.color === "White")
-//     .sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type));
-
-//   blackPieces.forEach(p => { p.x = leftX;  p.y = yBlack;  yBlack += gapY; });
-//   whitePieces.forEach(p => { p.x = rightX; p.y = yWhite;  yWhite += gapY; });
-// }
-
 export function layoutBankPositions(
   bankPieces: BankPiece[],
   canvasWidth: number,
@@ -105,3 +85,4 @@ export function layoutBankPositions(
     yWhite += gapY;
   });
 }
+
