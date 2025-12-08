@@ -17,6 +17,9 @@ import { renderCanvasBoard } from "./ui/render";
 import { initUIEvents } from "./ui/events";
 import { showError } from './ui/uiUtils';
 
+// -------------- AI ---------------
+import { AIController } from "./agent/aiController";
+
 // ===============================
 //  CANVAS SETUP
 // ===============================
@@ -43,7 +46,8 @@ let selected:
 	| { from: "board"; ref: Piece }
 	| null = null;
 let mousePos = { x: 0, y: 0 };
-
+const ai = new AIController(game);
+ai.onMoveComplete = () => nextTurnOrSkip();
 let hoveredHex: { q: number, r: number } | null = null;
 
 // -------------------------------
@@ -51,6 +55,19 @@ let hoveredHex: { q: number, r: number } | null = null;
 // -------------------------------
 
 function handleBankClick(b: BankPiece) {
+
+  // If AI is enabled and this bank piece belongs to AI
+if (game.aiEnabled) {
+  if (game.currentPlayer === game.aiPlays) {
+    showError("🤖 AI is thinking...");
+    return;
+  }
+  if (b.color === game.aiPlays) {
+    showError(`🤖 You cannot play ${game.aiPlays}, AI controls it!`);
+    return;
+  }
+}
+
   if (!game.currentPlayer) {
     game.currentPlayer = b.color;
     console.log(`First player: ${game.currentPlayer}`);
@@ -66,9 +83,22 @@ function handleBankClick(b: BankPiece) {
 // HANDLER — HEX CLICK (MOVE OR PLACE)
 // -------------------------------
 function handleHexClick(hex: { q: number; r: number }) {
+
+  // If AI is playing and it's AI’s turn
+  if (game.aiEnabled && game.currentPlayer === game.aiPlays) {
+  showError("🤖 AI is thinking...");
+  return;
+  }
+
   if (!selected) {
     // Selecting board piece
     const piece = game.board.topPieceAt(game.board, hex);
+
+    // Prevent selecting AI-owned pieces
+    if (game.aiEnabled && piece && piece.owner === game.aiPlays) {
+      showError("🤖 You cannot move Black — AI plays Black!");
+      return;
+    }
 
     if (
       piece &&
@@ -173,8 +203,17 @@ function nextTurnOrSkip() {
     game.nextTurn();
   }
 
+  // clear selection after turn change
+  selected = null;
+  game.validMoves = [];
+
   document.getElementById("game-status")!.textContent =
     `Next move: ${game.currentPlayer}`;
+
+  // Trigger AI AFTER UI updates
+  if (ai.isEnabled && game.currentPlayer === game.aiPlays) {
+    setTimeout(() => ai.makeMoveIfNeeded(), 200);
+  }
 }
 
 // -------------------------------
@@ -198,6 +237,36 @@ function handleHover(
     HEX_SIZE
   );
 }
+
+// ===============================
+//   AI 
+// ===============================
+
+document.getElementById("play_against_ai")!.addEventListener("click", () => {
+  const enabled = ai.toggle();
+
+  // When enabling AI mode:
+  if (enabled) {
+
+    // Human must play White
+    game.aiEnabled = true;
+    game.aiPlays = "Black";
+
+    // If game already started with Black first → block
+    if (game.currentPlayer === "Black") {
+      showError("⚠️ AI mode ON, but Black already started. Restart the game!");
+    }
+  } 
+  // When disabling AI:
+  else {
+    game.aiEnabled = false;
+  }
+
+  const button = document.getElementById("play_against_ai")!;
+  button.textContent = enabled ? "AI: ON" : "AI: OFF";
+
+  showError(enabled ? "🤖 AI Enabled" : "❌ AI Disabled");
+});
 
 // ===============================
 // 📌 INITIAL RENDER

@@ -150,4 +150,14 @@ export class Board {
     return stack[stack.length - 1]; // topmost piece
   }
 
+  clone(): Board {
+  const b = new Board();
+
+  // Copy pieces
+  b.pieces = this.pieces.map(p => p.clone());
+
+  return b;
+}
+
+
 }
