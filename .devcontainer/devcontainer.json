@@ -1,0 +1,5 @@
+{
+  "name": "Node 18",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:18",
+  "postCreateCommand": "npm install"
+}
