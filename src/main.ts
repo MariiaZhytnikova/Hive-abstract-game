@@ -48,6 +48,15 @@ let selected:
 let mousePos = { x: 0, y: 0 };
 const ai = new AIController(game);
 ai.onMoveComplete = () => nextTurnOrSkip();
+// ✅ Restore AI mode after reload
+if (localStorage.getItem("playAgainstAI") === "true") {
+  ai.enable();
+  game.aiEnabled = true;
+  game.aiPlays = "Black";
+
+  document.getElementById("play_against_ai")!.textContent = "AI: ON";
+  showError("🤖 Playing against AI");
+}
 let hoveredHex: { q: number, r: number } | null = null;
 
 // -------------------------------
@@ -138,7 +147,10 @@ function handleHexClick(hex: { q: number; r: number }) {
   );
 
   const winner = game.checkWin();
-  if (winner) showWinnerPopup(winner);
+  if (winner) {
+    game.isGameOver = true;
+    showWinnerPopup(winner);
+  }
 }
 
 // -------------------------------
@@ -193,6 +205,7 @@ function moveFromBoard(hex: { q: number; r: number }) {
 // TURN LOGIC (skip if no moves)
 // -------------------------------
 function nextTurnOrSkip() {
+  if (game.isGameOver) return;
   const next = game.currentPlayer === "White" ? "Black" : "White";
   console.log(`Now turn of: ${next}`);
   if (!hasAvailableMoves(game.board, next, game.bank)) {
@@ -242,30 +255,27 @@ function handleHover(
 //   AI 
 // ===============================
 
-document.getElementById("play_against_ai")!.addEventListener("click", () => {
-  const enabled = ai.toggle();
+document.getElementById("play_against_ai")!
+  .addEventListener("click", () => {
 
-  // When enabling AI mode:
-  if (enabled) {
+    // If AI already ON → turn it OFF without reload
+    if (ai.isEnabled) {
+      ai.disable();
+      game.aiEnabled = false;
+      localStorage.removeItem("playAgainstAI");
 
-    // Human must play White
-    game.aiEnabled = true;
-    game.aiPlays = "Black";
-
-    // If game already started with Black first → block
-    if (game.currentPlayer === "Black") {
-      showError("⚠️ AI mode ON, but Black already started. Restart the game!");
+      document.getElementById("play_against_ai")!.textContent = "AI: OFF";
+      showError("❌ AI Disabled");
+      return;
     }
-  } 
-  // When disabling AI:
-  else {
-    game.aiEnabled = false;
-  }
 
-  const button = document.getElementById("play_against_ai")!;
-  button.textContent = enabled ? "AI: ON" : "AI: OFF";
+    // AI is being enabled → SAVE + RELOAD
+    localStorage.setItem("playAgainstAI", "true");
+    showError("🤖 AI Enabled — restarting game…");
 
-  showError(enabled ? "🤖 AI Enabled" : "❌ AI Disabled");
+    setTimeout(() => {
+      location.reload();
+    }, 300);
 });
 
 // ===============================

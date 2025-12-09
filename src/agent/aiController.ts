@@ -30,6 +30,7 @@ export class AIController {
 	}
 
 	makeMoveIfNeeded() {
+		if (this.game.isGameOver) return;
 		if (!this.isEnabled) return;
 		if (!this.game.currentPlayer) return;
 		if (!this.game.aiPlays) return;

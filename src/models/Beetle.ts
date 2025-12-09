@@ -12,25 +12,26 @@ import { canSlide } from '../game/rules';
  */
 export class Beetle extends Piece {
   readonly type = "beetle";
-  legalMoves(board: Board): HexCoord[] {
+    legalMoves(board: Board): HexCoord[] {
     const neighbors = board.neighbors(this.position);
     const moves: HexCoord[] = [];
+    const onTop = board.stackHeight(this.position) > 1;
 
     for (const c of neighbors) {
-      const destEmpty = board.isEmpty(c);
-      const onTop = board.stackHeight(this.position) > 1; // >1 means beetle is on top
+      if (!board.isHiveIntact(this, c)) continue;
 
-      if (destEmpty) {
+      if (board.isEmpty(c)) {
         if (onTop) {
-          // beetle on top can drop down or slide, no corridor check here
-          if (board.isHiveIntact(this, c) && canSlide(board, this.position, c)) moves.push(c);
+          // ✅ NO corridor / sliding check
+          moves.push(c);
         } else {
-          // on ground, must slide to empty spot
-          if (board.isHiveIntact(this, c) && canSlide(board, this.position, c)) moves.push(c);
+          if (canSlide(board, this.position, c)) {
+            moves.push(c);
+          }
         }
       } else {
-        // occupied spot means beetle can climb up
-        if (board.isHiveIntact(this, c)) moves.push(c);
+        // ✅ Can always climb
+        moves.push(c);
       }
     }
 

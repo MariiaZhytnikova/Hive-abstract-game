@@ -40,6 +40,7 @@ export class Game {
     turnBlack: number = 0;
 	aiEnabled = false;
 	aiPlays: Player = "Black";
+	isGameOver = false;
 
 	constructor() {
 		this.board = new Board();

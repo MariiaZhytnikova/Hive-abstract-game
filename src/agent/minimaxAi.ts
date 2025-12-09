@@ -7,6 +7,9 @@ import type { BankPiece } from "../game/PieceBank";
 // ============================================================
 // TYPES
 // ============================================================
+const MAX_THINK_TIME_MS = 250; // safe for browser
+const MAX_ROOT_MOVES = 6;
+let thinkStart = 0;
 
 export type AIMove =
   | {
@@ -29,13 +32,12 @@ export type AIMove =
 // PUBLIC ENTRY — FIND BEST MOVE
 // ============================================================
 
-const MAX_ROOT_MOVES = 6;
-
 export function findBestMove(
   game: Game,
   aiPlayer: Player,
   depth: number = 2
 ): AIMove | null {
+  thinkStart = performance.now();
   if (!game.currentPlayer) return null;
   if (game.currentPlayer !== aiPlayer) return null;
 
@@ -49,6 +51,11 @@ export function findBestMove(
       score: scoreMove(game, move, aiPlayer),
     }))
     .sort((a, b) => b.score - a.score);
+
+  const bestScored = scored[0];
+  if (bestScored.score >= 100_000) {
+    return bestScored.move; // PLAY IMMEDIATELY WIN
+  }
 
   const moves = scored.slice(0, MAX_ROOT_MOVES).map((s) => s.move);
 
@@ -91,9 +98,12 @@ function minimax(
   maximizing: boolean,
   me: Player
 ): number {
+  if (performance.now() - thinkStart > MAX_THINK_TIME_MS) {
+    return evaluateGame(game, me);
+  }
   const winner = game.checkWin();
-  if (winner === me) return 1000;
-  if (winner && winner !== me) return -1000;
+  if (winner === me) return 100_000;
+  if (winner && winner !== me) return -100_000;
 
   if (depth === 0) {
     return evaluateGame(game, me);
@@ -182,7 +192,7 @@ function evaluateGame(game: Game, me: Player): number {
 
   return (
     10 * (myPieces.length - oppPieces.length) +
-    3 * (myMobility - oppMobility) +
+    2 * (myMobility - oppMobility) +
     8 * (oppQueenPressure - myQueenPressure)
   );
 }
@@ -394,25 +404,80 @@ function scoreMove(game: Game, move: AIMove, player: Player): number {
   const myMobilityAfter = mobilityForPlayer(sim, player);
   const enemyMobilityAfter = mobilityForPlayer(sim, enemy);
 
-  // 1) Saving own queen = highest priority
-  if (myPressureAfter < myPressureBefore) score += 800;
+  // Saving own queen = highest priority
   if (myPressureAfter > myPressureBefore) score -= 500; // made queen worse
 
-  // 2) Attacking enemy queen
-  if (enemyPressureAfter > enemyPressureBefore) score += 600;
-  // Immediate win (fully surrounded queen)
-  if (enemyPressureAfter >= 6) score += 5000;
+  // Encourage placing strategic pieces
+  if (move.kind === "place") {
+    const turn = game.getTurnNumber(player);
 
-  // 3) Mobility (number of legal moves)
+    // Early–mid game: prefer development
+    if (turn <= 6) {
+      score += 120;
+    }
+  }
+
+  // Hard danger zones (DEFENSE)
+  if (myPressureAfter >= 5) score -= 5000;
+  if (myPressureAfter === 4) score -= 1500;
+
+  // Soft attack pressure building
+  if (enemyPressureAfter > enemyPressureBefore) {
+    score += 200;
+  }
+
+  // Attacking enemy queen
+  if (enemyPressureAfter >= 6) {
+    return 100_000; // FORCE TOP PRIORITY
+  }
+  if (enemyPressureAfter >= 5) score += 5000;
+
+  // Commit to attack once it starts
+  if (enemyPressureBefore >= 3 && enemyPressureAfter > enemyPressureBefore) {
+    score += 400;
+  }
+
+  if (
+    enemyPressureBefore >= 4 &&
+    enemyPressureAfter >= enemyPressureBefore
+  ) {
+    score += 400;
+  }
+
+  // Grasshoppers are attack
+  if (move.kind === "place" && move.pieceType === "hopper") {
+    if (enemyPressureBefore >= 2) {
+      score += 120; // prepares jump-ins
+    }
+  }
+
+  // Small penalty for pure reposition moves when bank isn’t empty.
+  if (
+    move.kind === "move" &&
+    game.bank.some(b => b.color === player) &&
+    myPressureAfter === myPressureBefore &&
+    enemyPressureAfter === enemyPressureBefore
+  ) {
+    score -= 80;
+  }
+  // Detect moves that change nothing
+  const quietMove =
+    enemyPressureAfter === enemyPressureBefore &&
+    myPressureAfter === myPressureBefore &&
+    Math.abs(myMobilityAfter - myMobilityBefore) < 1;
+
+  if (quietMove) score -= 80;
+
+  // Mobility (number of legal moves)
   const myMobilityDelta = myMobilityAfter - myMobilityBefore;
   const enemyMobilityDelta = enemyMobilityAfter - enemyMobilityBefore;
-  score += myMobilityDelta * 20;
-  score -= enemyMobilityDelta * 10;
+  score += myMobilityDelta * 8;
+  score -= enemyMobilityDelta * 6;
 
-  // 4) Small preference: placing vs moving
-  if (move.kind === "place") {
-    score += 15;
-    if (move.pieceType === "bee") score += 10; // queen placement is important
+  // Small preference: placing vs moving
+  if (move.kind === "place" && move.pieceType !== "bee") {
+    if (game.getTurnNumber(player) < 4) score += 30;
+    else score -= 10;
   }
 
   // Small randomness to avoid totally deterministic play
