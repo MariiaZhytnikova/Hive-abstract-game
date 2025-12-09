@@ -17,6 +17,9 @@ import { renderCanvasBoard } from "./ui/render";
 import { initUIEvents } from "./ui/events";
 import { showError } from './ui/uiUtils';
 
+// -------------- AI ---------------
+import { AIController } from "./agent/aiController";
+
 // ===============================
 //  CANVAS SETUP
 // ===============================
@@ -43,7 +46,17 @@ let selected:
 	| { from: "board"; ref: Piece }
 	| null = null;
 let mousePos = { x: 0, y: 0 };
+const ai = new AIController(game);
+ai.onMoveComplete = () => nextTurnOrSkip();
+// ✅ Restore AI mode after reload
+if (localStorage.getItem("playAgainstAI") === "true") {
+  ai.enable();
+  game.aiEnabled = true;
+  game.aiPlays = "Black";
 
+  document.getElementById("play_against_ai")!.textContent = "AI: ON";
+  showError("🤖 Playing against AI");
+}
 let hoveredHex: { q: number, r: number } | null = null;
 
 // -------------------------------
@@ -51,6 +64,19 @@ let hoveredHex: { q: number, r: number } | null = null;
 // -------------------------------
 
 function handleBankClick(b: BankPiece) {
+
+  // If AI is enabled and this bank piece belongs to AI
+if (game.aiEnabled) {
+  if (game.currentPlayer === game.aiPlays) {
+    showError("🤖 AI is thinking...");
+    return;
+  }
+  if (b.color === game.aiPlays) {
+    showError(`🤖 You cannot play ${game.aiPlays}, AI controls it!`);
+    return;
+  }
+}
+
   if (!game.currentPlayer) {
     game.currentPlayer = b.color;
     console.log(`First player: ${game.currentPlayer}`);
@@ -66,9 +92,22 @@ function handleBankClick(b: BankPiece) {
 // HANDLER — HEX CLICK (MOVE OR PLACE)
 // -------------------------------
 function handleHexClick(hex: { q: number; r: number }) {
+
+  // If AI is playing and it's AI’s turn
+  if (game.aiEnabled && game.currentPlayer === game.aiPlays) {
+  showError("🤖 AI is thinking...");
+  return;
+  }
+
   if (!selected) {
     // Selecting board piece
     const piece = game.board.topPieceAt(game.board, hex);
+
+    // Prevent selecting AI-owned pieces
+    if (game.aiEnabled && piece && piece.owner === game.aiPlays) {
+      showError("🤖 You cannot move Black — AI plays Black!");
+      return;
+    }
 
     if (
       piece &&
@@ -108,7 +147,10 @@ function handleHexClick(hex: { q: number; r: number }) {
   );
 
   const winner = game.checkWin();
-  if (winner) showWinnerPopup(winner);
+  if (winner) {
+    game.isGameOver = true;
+    showWinnerPopup(winner);
+  }
 }
 
 // -------------------------------
@@ -242,6 +284,7 @@ canvas.addEventListener('mousemove', (e) => {
 // TURN LOGIC (skip if no moves)
 // -------------------------------
 function nextTurnOrSkip() {
+  if (game.isGameOver) return;
   const next = game.currentPlayer === "White" ? "Black" : "White";
   console.log(`Now turn of: ${next}`);
   if (!hasAvailableMoves(game.board, next, game.bank)) {
@@ -252,8 +295,17 @@ function nextTurnOrSkip() {
     game.nextTurn();
   }
 
+  // clear selection after turn change
+  selected = null;
+  game.validMoves = [];
+
   document.getElementById("game-status")!.textContent =
     `Next move: ${game.currentPlayer}`;
+
+  // Trigger AI AFTER UI updates
+  if (ai.isEnabled && game.currentPlayer === game.aiPlays) {
+    setTimeout(() => ai.makeMoveIfNeeded(), 200);
+  }
 }
 
 // -------------------------------
@@ -277,6 +329,33 @@ function handleHover(
     HEX_SIZE
   );
 }
+
+// ===============================
+//   AI 
+// ===============================
+
+document.getElementById("play_against_ai")!
+  .addEventListener("click", () => {
+
+    // If AI already ON → turn it OFF without reload
+    if (ai.isEnabled) {
+      ai.disable();
+      game.aiEnabled = false;
+      localStorage.removeItem("playAgainstAI");
+
+      document.getElementById("play_against_ai")!.textContent = "AI: OFF";
+      showError("❌ AI Disabled");
+      return;
+    }
+
+    // AI is being enabled → SAVE + RELOAD
+    localStorage.setItem("playAgainstAI", "true");
+    showError("🤖 AI Enabled — restarting game…");
+
+    setTimeout(() => {
+      location.reload();
+    }, 300);
+});
 
 // ===============================
 // 📌 INITIAL RENDER

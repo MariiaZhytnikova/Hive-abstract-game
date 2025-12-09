@@ -15,9 +15,26 @@ export abstract class Piece {
 
   /** Return all legal target coordinates from current position */
   abstract legalMoves(board: Board): HexCoord[];
+  clone(): Piece {
+    const Cls = this.constructor as any;
+
+    const newPiece: Piece = new Cls(
+      this.owner,
+      { ...this.position }
+    );
+
+    // Copy properties that differ across piece types
+    newPiece.stackLevel = this.stackLevel;
+    newPiece.type = this.type;
+
+    return newPiece;
+  }
 }
+
 export interface Piece {
   type: string;        // like "bee", "spider"…
   owner: "White" | "Black"; // color of player
   position: HexCoord;  // {q, r}
+
+  
 }

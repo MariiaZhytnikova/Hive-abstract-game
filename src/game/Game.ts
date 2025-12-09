@@ -36,12 +36,15 @@ export class Game {
 	board: Board;
 	currentPlayer: Player | null;
 	public validMoves: { q: number; r: number }[] = [];
-	turnCount: number;
+    turnWhite: number = 0;
+    turnBlack: number = 0;
+	aiEnabled = false;
+	aiPlays: Player = "Black";
+	isGameOver = false;
 
 	constructor() {
 		this.board = new Board();
 		this.currentPlayer = null;
-		this.turnCount = 1;
 		this.bank = this.createInitialBank();
 	}
 
@@ -67,10 +70,48 @@ export class Game {
 
 	/** Switch to the other player and increment turn */
 	nextTurn(): void {
-		this.currentPlayer = this.currentPlayer === "White" ? "Black" : "White";
-		this.turnCount++;
+		if (this.currentPlayer === "White") {
+			this.turnWhite++;
+			console.log("White finished move", this.turnWhite);
+			this.currentPlayer = "Black";
+		} else {
+			this.turnBlack++;
+			console.log("Black finished move: ", this.turnBlack);
+			this.currentPlayer = "White";
+		}
+	}
 
-		
+	clone(): Game {
+		const g = new Game();
+
+		// --- shallow game fields ---
+		g.currentPlayer = this.currentPlayer;
+		g.turnWhite = this.turnWhite;
+		g.turnBlack = this.turnBlack;
+		g.aiEnabled = this.aiEnabled;
+		g.aiPlays = this.aiPlays;
+
+		// --- shallow copy bank ---
+		g.bank = this.bank.map(b => ({ ...b }));
+
+		// --- clone pieces (fast shallow copy) ---
+		g.board.pieces = this.board.pieces.map(p => {
+			// create a new piece with same prototype
+			const clone = Object.create(Object.getPrototypeOf(p));
+
+			// copy all properties, but deep-copy position
+			Object.assign(clone, p, {
+				position: { ...p.position }
+			});
+
+			return clone;
+		});
+
+		return g;
+	}
+
+	getTurnNumber(player: "White" | "Black"): number {
+		return player === "White" ? this.turnWhite : this.turnBlack;
 	}
 
 	/**
@@ -81,7 +122,7 @@ export class Game {
 	 *  - QueenBee must be placed by each player's 4th turn
 	 */
 	placePiece(piece: Piece, coord: { q: number; r: number }): boolean { //when first bug placed climb you cant place anymore pieces
-	console.log("placePiece", coord.q, coord.r);
+	// console.log("placePiece", coord.q, coord.r);
 		if (piece.owner !== this.currentPlayer) {
 		console.log("not your turn");
 		showError("❌ Not your turn!");
@@ -136,8 +177,15 @@ export class Game {
 	const samePlayerPieces = this.board.pieces.filter(
 		p => p.owner === piece.owner
 	);
+
 	const hasQueen = samePlayerPieces.some(p => p.constructor.name === "QueenBee" || p.type === "bee");
-	if (!hasQueen && samePlayerPieces.length >= 3 && piece.constructor.name !== "QueenBee" && piece.type !== "bee") {
+	const playerTurn = this.currentPlayer === "White"
+		? this.turnWhite
+		: this.turnBlack;
+	if (!hasQueen &&
+			playerTurn >= 3 &&                                   // ✔ correct: 4th turn
+			piece.constructor.name !== "QueenBee" &&
+			piece.type !== "bee") {
 		console.log("Move failed: Queen should be placed at 4 move");
 		showError("❌ The Queen Bee must be placed by turn 4!");
 		return false;
@@ -162,6 +210,22 @@ export class Game {
 	movePiece(piece: Piece, to: { q: number; r: number }): boolean {
 		// must be this player's piece
 		if (piece.owner !== this.currentPlayer) return false;
+
+		// queen rule for movement
+		const samePlayerPieces = this.board.pieces.filter(
+			p => p.owner === piece.owner
+		);
+		const hasQueen = samePlayerPieces.some(
+			p => p.type === "bee" || p.constructor.name === "QueenBee"
+		);
+		const playerTurn = this.currentPlayer === "White"
+			? this.turnWhite
+			: this.turnBlack;
+		if (!hasQueen && playerTurn >= 3) {
+			console.log("Move failed: Queen must be placed before moving on turn 4");
+			showError("❌ You must place your Queen Bee by your 4th turn!");
+			return false;
+		}
 
 		// check if move legal
 		const legal = piece.legalMoves(this.board);
@@ -192,23 +256,28 @@ export class Game {
 	}
 
 	checkWin(): Player | null {
-	this.board.pieces.forEach(p => {
-		    console.log(
-      p.owner,
-      p.type,
-      (p as any).name,
-      p.constructor?.name,
-      p.position
-    );
-	});
+	// Find both queens safely
+	const queens = this.board.pieces.filter(
+		p => p.type === "bee" || p.constructor?.name === "QueenBee"
+	);
 
-	const queens = this.board.pieces.filter(p => p.type === "bee" || p.constructor.name === "QueenBee");
-	for (const q of queens) {
-		const neighbors = this.board.neighbors(q.position);
-		const surrounded = neighbors.every(n => !this.board.isEmpty(n));
-		if (surrounded) return q.owner === "White" ? "Black" : "White";
+	for (const queen of queens) {
+		const pos = queen.position;
+		const neighbors = this.board.neighbors(pos);
+
+		// A queen is surrounded ONLY if all 6 neighbors are occupied
+		let filled = 0;
+		for (const n of neighbors) {
+		const top = this.board.topPieceAt(this.board, n);
+		if (top) filled++;
+		}
+
+		if (filled === 6) {
+		// queen.owner lost => opponent wins
+		return queen.owner === "White" ? "Black" : "White";
+		}
 	}
+
 	return null;
 	}
-
 }
