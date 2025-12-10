@@ -1,6 +1,6 @@
 // src/ui/events.ts
-import { pixelToHex } from "../game/hexUtils";
 import type { BankPiece } from "../game/PieceBank";
+import type { CanvasRenderer } from "../game//CanvasRenderer";
 
 function getMousePos(evt: MouseEvent, canvas: HTMLCanvasElement) {
   const rect = canvas.getBoundingClientRect();
@@ -22,17 +22,18 @@ export type UIEventHandlers = {
 export function initUIEvents(
   canvas: HTMLCanvasElement,
   gameBank: BankPiece[],
-  HEX_SIZE: number,
+  // HEX_SIZE: number,
+  renderer: CanvasRenderer,
   handlers: UIEventHandlers
 ) {
-  const width = canvas.clientWidth;
-  const height = canvas.clientHeight;
+  // const width = canvas.clientWidth;
+  // const height = canvas.clientHeight;
 
   // CLICK
   canvas.addEventListener("click", (e) => {
     const { x, y } = getMousePos(e, canvas);
-    const centerX = width / 2;
-    const centerY = height / 2;
+    // const centerX = width / 2;
+    // const centerY = height / 2;
 
     // BANK hit test
     for (let i = gameBank.length - 1; i >= 0; i--) {
@@ -45,17 +46,19 @@ export function initUIEvents(
     }
 
     // BOARD click (convert pixel → hex)
-    const hex = pixelToHex(x - centerX, y - centerY, HEX_SIZE);
+    // const hex = pixelToHex(x - centerX, y - centerY, HEX_SIZE);
+    const hex = renderer.pixelToHex(x, y);
     handlers.onHexClick(hex);
   });
 
   // HOVER
  canvas.addEventListener("mousemove", (e) => {
   const { x, y } = getMousePos(e, canvas);
-  const centerX = width / 2;
-  const centerY = height / 2;
+  // const centerX = width / 2;
+  // const centerY = height / 2;
 
-  const hex = pixelToHex(x - centerX, y - centerY, HEX_SIZE);
+  // const hex = pixelToHex(x - centerX, y - centerY, HEX_SIZE);
+  const hex = renderer.pixelToHex(x, y);
   handlers.onHoverHex(hex, { x, y });   // <-- FIXED!
 });
 

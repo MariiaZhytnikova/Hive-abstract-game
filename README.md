@@ -204,6 +204,10 @@ The `gh-pages` package automatically:
 
 ## ✨ Features to Add (Future Work)
 
+to do:
+take on click and put back on click if you want to change a bug piece
+do smth with error message
+
 - Online multiplayer.  
 - Drag and drop moves.  
 
