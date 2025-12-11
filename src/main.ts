@@ -10,6 +10,8 @@ import { hasAvailableMoves } from './game/rules';
 import { createPiece } from './models/createPiece';
 import {showWinnerPopup} from './popup'
 import type { Piece, Player } from './models/Piece';
+import { Board } from "./models/Board";
+import type { CanvasRenderer } from "./game/CanvasRenderer";
 
 // -------- UI / Rendering --------
 import { setupCanvas } from "./ui/canvasView";
@@ -25,7 +27,7 @@ import { AIController } from "./agent/aiController";
 // ===============================
 const width = 1000;
 const height = 750;
-const HEX_SIZE = 30;
+const HEX_SIZE = 25;
 const pieceSize = 30;
 
 const { canvas, renderer, dpr } = setupCanvas(
@@ -65,7 +67,26 @@ let hoveredHex: { q: number, r: number } | null = null;
 
 function handleBankClick(b: BankPiece) {
 
-  // If AI is enabled and this bank piece belongs to AI
+  // DROP BACK if already holding a bank piece
+  if (selected?.from === "bank") {
+    selected = null;
+    game.validMoves = [];
+    showError("❌ Placement cancelled");
+
+    renderCanvasBoard(
+      renderer,
+      game.board,
+      game.bank,
+      hoveredHex,
+      selected,
+      game.validMoves,
+      mousePos,
+      HEX_SIZE
+    );
+    return;
+  }
+
+// ================= AI PROTECTION =================
 if (game.aiEnabled) {
   if (game.currentPlayer === game.aiPlays) {
     showError("🤖 AI is thinking...");
@@ -76,7 +97,7 @@ if (game.aiEnabled) {
     return;
   }
 }
-
+  // =================================================
   if (!game.currentPlayer) {
     game.currentPlayer = b.color;
     console.log(`First player: ${game.currentPlayer}`);
@@ -145,12 +166,6 @@ function handleHexClick(hex: { q: number; r: number }) {
     mousePos,
     HEX_SIZE
   );
-
-  const winner = game.checkWin();
-  if (winner) {
-    game.isGameOver = true;
-    showWinnerPopup(winner);
-  }
 }
 
 // -------------------------------
@@ -158,17 +173,6 @@ function handleHexClick(hex: { q: number; r: number }) {
 // -------------------------------
 function placeFromBank(hex: { q: number; r: number }) {
   const sel = selected!;
-  const radius = 6;
-
-  if (
-    Math.abs(hex.q) > radius ||
-    Math.abs(hex.r) > radius ||
-    Math.abs(hex.q + hex.r) > radius
-  ) {
-    showError("❌ Outside board bounds");
-    return;
-  }
-
   if (sel.from === "bank") {
     const pieceObj = createPiece(sel.type, sel.color, hex);
     if (!pieceObj) return;
@@ -179,6 +183,7 @@ function placeFromBank(hex: { q: number; r: number }) {
         game.bank.splice(idx, 1);
         layoutBankPositions(game.bank, width, dpr, pieceSize);
       }
+      updateCameraIfNeeded(game.board, renderer);
       nextTurnOrSkip();
     }
   }
@@ -193,7 +198,8 @@ function moveFromBoard(hex: { q: number; r: number }) {
     const piece = selected.ref;
 
     if (game.movePiece(piece, hex)) {
-        nextTurnOrSkip();
+      updateCameraIfNeeded(game.board, renderer);
+      nextTurnOrSkip();
     }
 
     selected = null;
@@ -226,6 +232,11 @@ function nextTurnOrSkip() {
   // Trigger AI AFTER UI updates
   if (ai.isEnabled && game.currentPlayer === game.aiPlays) {
     setTimeout(() => ai.makeMoveIfNeeded(), 200);
+  }
+  const winner = game.checkWin();
+  if (winner) {
+    game.isGameOver = true;
+    showWinnerPopup(winner);
   }
 }
 
@@ -279,7 +290,35 @@ document.getElementById("play_against_ai")!
 });
 
 // ===============================
-// 📌 INITIAL RENDER
+// CAMERA MOVE
+// ===============================
+const SAFE_RADIUS = 7;
+
+function updateCameraIfNeeded(board: Board, renderer: CanvasRenderer) {
+  let worstPiece: { q: number; r: number } | null = null;
+  let worstDist = 0;
+
+  for (const p of board.pieces) {
+    const dq = p.position.q - renderer.cameraQ;
+    const dr = p.position.r - renderer.cameraR;
+
+    const dist = Math.max(Math.abs(dq), Math.abs(dr));
+
+    if (dist > worstDist) {
+      worstDist = dist;
+      worstPiece = p.position;
+    }
+  }
+
+  // Move camera only if hive approaches edge
+  if (worstPiece && worstDist >= SAFE_RADIUS) {
+    renderer.cameraQ += Math.sign(worstPiece.q - renderer.cameraQ);
+    renderer.cameraR += Math.sign(worstPiece.r - renderer.cameraR);
+  }
+}
+
+// ===============================
+// INITIAL RENDER
 // ===============================
 renderCanvasBoard(
   renderer,
@@ -298,7 +337,7 @@ document.body.classList.add("ready");
 // ===============================
 // 📌 ATTACH UI EVENTS
 // ===============================
-initUIEvents(canvas, game.bank, HEX_SIZE, {
+initUIEvents(canvas, game.bank, renderer, {
   onHexClick: handleHexClick,
   onBankClick: handleBankClick,
   onHoverHex: handleHover

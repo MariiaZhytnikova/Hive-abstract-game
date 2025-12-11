@@ -14,7 +14,6 @@ export class Grasshopper extends Piece {
 
   legalMoves(board: Board): HexCoord[] {
     const moves: HexCoord[] = [];
-    const radius = 6; // match your board radius
 
     for (const dir of board.directions()) {
       let next = board.addDir(this.position, dir);
@@ -28,10 +27,6 @@ export class Grasshopper extends Piece {
 
       // Only consider valid moves if at least one piece was jumped
       if (jumped) {
-        // Skip if outside board
-        if (Math.abs(next.q) > radius || Math.abs(next.r) > radius || Math.abs(next.q + next.r) > radius) 
-          continue;
-
         // Skip if moving breaks the hive
         if (!board.isHiveIntact(this, next)) continue;
 

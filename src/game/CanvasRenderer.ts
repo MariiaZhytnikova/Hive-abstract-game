@@ -1,6 +1,7 @@
 // CanvasRenderer.ts
 import { Board } from '../models/Board';
 import { Piece } from '../models/Piece';
+import { hexRound } from "../game/hexUtils";
 
 // 🔹 Global cache for piece images
 const pieceImages: Record<string, HTMLImageElement> = {};
@@ -32,6 +33,18 @@ export class CanvasRenderer {
   private physicalHeight: number; // device pixels (canvas.height)
   public size: number;            // hex size in logical (CSS) pixels
 
+  // Camera for board
+  public cameraQ = 0;
+  public cameraR = 0;
+
+  get width() {
+    return this.logicalWidth;
+  }
+
+  get height() {
+    return this.logicalHeight;
+  }
+
   constructor(canvas: HTMLCanvasElement, size = 30) {
     this.ctx = canvas.getContext('2d')!;
     const dpr = window.devicePixelRatio || 1;
@@ -53,47 +66,133 @@ export class CanvasRenderer {
 
   // Convert axial (q,r) → pixel (logical x,y)
   // returns logical coordinates (to be used with scaled context)
+  // public hexToPixel(q: number, r: number) {
+  //   const centerX = this.logicalWidth / 2;
+  //   const centerY = this.logicalHeight / 2;
+  //   const x = Math.sqrt(3) * this.size * (q + r / 2) + centerX;
+  //   const y = (3 / 2) * this.size * r + centerY;
+  //   return { x, y };
+  // }
+
   public hexToPixel(q: number, r: number) {
     const centerX = this.logicalWidth / 2;
     const centerY = this.logicalHeight / 2;
-    const x = Math.sqrt(3) * this.size * (q + r / 2) + centerX;
-    const y = (3 / 2) * this.size * r + centerY;
+
+    // 👇 CAMERA OFFSET APPLIED HERE
+    const dq = q - this.cameraQ;
+    const dr = r - this.cameraR;
+
+    const x = Math.sqrt(3) * this.size * (dq + dr / 2) + centerX;
+    const y = (3 / 2) * this.size * dr + centerY;
     return { x, y };
   }
 
-  drawBoard(board: Board, hoveredHex?: { q: number; r: number } | null) {
-    const radius = 6;
+  public pixelToHex(x: number, y: number) {
+    const centerX = this.logicalWidth / 2;
+    const centerY = this.logicalHeight / 2;
 
-    // --- 1. Draw the hex grid ---
-    for (let q = -radius; q <= radius; q++) {
-      for (let r = -radius; r <= radius; r++) {
-        if (Math.abs(q + r) <= radius) {
-          const { x, y } = this.hexToPixel(q, r);
-          const isHovered = hoveredHex && hoveredHex.q === q && hoveredHex.r === r;
-          this.drawHexCustom(x, y, this.size, isHovered ? '#ffe066' : undefined);
-        }
-      }
-    }
+    // Convert screen -> board space
+    const px = x - centerX;
+    const py = y - centerY;
 
-    // --- 2. Group pieces by stack position ---
-    const stacksByCoord = new Map<string, Piece[]>();
+    const q = (Math.sqrt(3)/3 * px - 1/3 * py) / this.size;
+    const r = (2/3 * py) / this.size;
 
-    for (const piece of board.pieces) {
-      const key = `${piece.position.q},${piece.position.r}`;
-      if (!stacksByCoord.has(key)) {
-        stacksByCoord.set(key, []);
-      }
-      stacksByCoord.get(key)!.push(piece);
-    }
+    // Apply camera BACK
+    return hexRound({
+      q: q + this.cameraQ,
+      r: r + this.cameraR
+    });
+  }
 
-    // --- 3. Draw pieces from bottom to top of each stack ---
-    for (const stack of stacksByCoord.values()) {
-      stack.sort((a, b) => a.stackLevel - b.stackLevel);
-      for (const piece of stack) {
-        this.drawPiece(piece);
+  public hexToPixelStatic(q: number, r: number) {
+  const centerX = this.logicalWidth / 2;
+  const centerY = this.logicalHeight / 2;
+
+  const x = Math.sqrt(3) * this.size * (q + r / 2) + centerX;
+  const y = (3 / 2) * this.size * r + centerY;
+
+  return { x, y };
+  }
+
+  // drawBoard(board: Board, hoveredHex?: { q: number; r: number } | null) {
+  //   const radius = 9;
+
+  //   // --- 1. Draw the hex grid ---
+  //   for (let q = -radius; q <= radius; q++) {
+  //     for (let r = -radius; r <= radius; r++) {
+  //       if (Math.abs(q + r) <= radius) {
+  //         const { x, y } = this.hexToPixel(q, r);
+  //         const isHovered = hoveredHex && hoveredHex.q === q && hoveredHex.r === r;
+  //         this.drawHexCustom(x, y, this.size, isHovered ? '#ffe066' : undefined);
+  //       }
+  //     }
+  //   }
+
+  //   // --- 2. Group pieces by stack position ---
+  //   const stacksByCoord = new Map<string, Piece[]>();
+
+  //   for (const piece of board.pieces) {
+  //     const key = `${piece.position.q},${piece.position.r}`;
+  //     if (!stacksByCoord.has(key)) {
+  //       stacksByCoord.set(key, []);
+  //     }
+  //     stacksByCoord.get(key)!.push(piece);
+  //   }
+
+  //   // --- 3. Draw pieces from bottom to top of each stack ---
+  //   for (const stack of stacksByCoord.values()) {
+  //     stack.sort((a, b) => a.stackLevel - b.stackLevel);
+  //     for (const piece of stack) {
+  //       this.drawPiece(piece);
+  //     }
+  //   }
+  // }
+
+drawBoard(board: Board, hoveredHex?: { q: number; r: number } | null) {
+  const radius = 9;
+
+  // --- 1. Draw the hex grid (STATIC) ---
+  for (let q = -radius; q <= radius; q++) {
+    for (let r = -radius; r <= radius; r++) {
+      if (Math.abs(q + r) <= radius) {
+        const { x, y } = this.hexToPixelStatic(q, r);
+
+        const worldQ = q + this.cameraQ;
+        const worldR = r + this.cameraR;
+
+        const isHovered =
+          hoveredHex &&
+          hoveredHex.q === worldQ &&
+          hoveredHex.r === worldR;
+
+        this.drawHexCustom(
+          x,
+          y,
+          this.size,
+          isHovered ? "#ffe066" : undefined
+        );
       }
     }
   }
+
+  // --- 2. Draw pieces (CAMERA APPLIED) ---
+  const stacksByCoord = new Map<string, Piece[]>();
+
+  for (const piece of board.pieces) {
+    const key = `${piece.position.q},${piece.position.r}`;
+    if (!stacksByCoord.has(key)) stacksByCoord.set(key, []);
+    stacksByCoord.get(key)!.push(piece);
+  }
+
+  for (const stack of stacksByCoord.values()) {
+    stack.sort((a, b) => a.stackLevel - b.stackLevel);
+    for (const piece of stack) {
+      this.drawPiece(piece); // uses hexToPixel (with camera)
+    }
+  }
+}
+
 
   drawHexCustom(x: number, y: number, size: number, fill: string = '#ddd') {
     this.ctx.beginPath();

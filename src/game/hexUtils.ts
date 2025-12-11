@@ -1,10 +1,10 @@
-export function pixelToHex(x: number, y: number, hexSize: number): { q: number, r: number } {
-  const q = ((Math.sqrt(3) / 3 * x) - (1 / 3 * y)) / hexSize;
-  const r = (2 / 3 * y) / hexSize;
-  return hexRound({ q, r });
-}
+// export function pixelToHex(x: number, y: number, hexSize: number): { q: number, r: number } {
+//   const q = ((Math.sqrt(3) / 3 * x) - (1 / 3 * y)) / hexSize;
+//   const r = (2 / 3 * y) / hexSize;
+//   return hexRound({ q, r });
+// }
 
-function hexRound({ q, r }: { q: number, r: number }): { q: number, r: number } {
+export function hexRound({ q, r }: { q: number, r: number }): { q: number, r: number } {
   const s = -q - r;
 
   let rq = Math.round(q);
